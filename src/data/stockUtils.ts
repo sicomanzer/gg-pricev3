@@ -23,6 +23,7 @@ export interface StockRecommendation {
   volatility: 'low' | 'medium' | 'high';
   momentum: 'strong' | 'moderate' | 'weak';
   dividendYield: number;
+  score: number;
 }
 
 // Calculate RSI estimation based on price change
@@ -122,6 +123,21 @@ export function convertToRecommendation(quote: StockQuote): StockRecommendation 
   const reward = targetPrice - entryPoint;
   const rr = risk > 0 ? (reward / risk).toFixed(2) : '0';
 
+  // Calculate Score
+  let score = 0;
+  // Volume surge (max 30 points)
+  score += Math.min(30, volumeRatio * 15);
+  // MACD signal (20 points)
+  if (macd === 'bullish') score += 20;
+  // RSI in good range (15 points)
+  if (rsi >= 40 && rsi <= 70) score += 15;
+  // Momentum (15 points)
+  if (momentum === 'strong') score += 15;
+  else if (momentum === 'moderate') score += 8;
+  // Above MAs (10 points each) - Simplified logic from convertToRecommendation
+  if (quote.changePercent > 0) score += 10; // aboveMA20
+  if (quote.changePercent > 0 && volumeRatio > 1.2) score += 10; // aboveMA50
+
   return {
     symbol: quote.symbol,
     name: quote.name,
@@ -146,6 +162,7 @@ export function convertToRecommendation(quote: StockQuote): StockRecommendation 
     momentum,
     // If backend returns 0 (which happens with mock/local), generate a random yield between 0-8% for testing
     dividendYield: quote.dividendYield || (Math.random() * 5) + 1,
+    score: Math.round(score),
   };
 }
 
@@ -200,33 +217,10 @@ export function filterStocks(
 // Sort stocks by recommendation score
 export function sortByScore(stocks: StockRecommendation[]): StockRecommendation[] {
   return [...stocks].sort((a, b) => {
-    // Calculate score based on multiple factors
-    const scoreA = calculateScore(a);
-    const scoreB = calculateScore(b);
-    return scoreB - scoreA;
+    return b.score - a.score;
   });
 }
 
 function calculateScore(stock: StockRecommendation): number {
-  let score = 0;
-
-  // Volume surge (max 30 points)
-  const volumeRatio = stock.avgVolume > 0 ? stock.volume / stock.avgVolume : 1;
-  score += Math.min(30, volumeRatio * 15);
-
-  // MACD signal (20 points)
-  if (stock.indicators.macd === 'bullish') score += 20;
-
-  // RSI in good range (15 points)
-  if (stock.indicators.rsi >= 40 && stock.indicators.rsi <= 70) score += 15;
-
-  // Momentum (15 points)
-  if (stock.momentum === 'strong') score += 15;
-  else if (stock.momentum === 'moderate') score += 8;
-
-  // Above MAs (10 points each)
-  if (stock.indicators.aboveMA20) score += 10;
-  if (stock.indicators.aboveMA50) score += 10;
-
-  return score;
+  return stock.score;
 }
