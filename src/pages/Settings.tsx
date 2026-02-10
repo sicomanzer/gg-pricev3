@@ -5,8 +5,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { AlertCircle, CheckCircle2, Send, MessageSquare } from "lucide-react";
+import { AlertCircle, CheckCircle2, Send, MessageSquare, Trash2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { sendTelegramMessage } from "@/lib/telegram";
 
@@ -103,6 +114,26 @@ const Settings = () => {
     // Simulate updating (In reality, we need backend support for dynamic updates)
     // Since we hardcoded the list in Edge Function for now, this UI is just a mockup for the User Requirement "Function to update list"
     // To make it truly work, we would need to change Edge Function to read from DB instead of hardcoded const.
+  };
+
+  const handleFactoryReset = () => {
+    // Clear all app specific data from localStorage
+    localStorage.removeItem('stock_backtest_records'); // History & Win Rate
+    localStorage.removeItem('stock_price_alerts');     // Price Alerts
+    localStorage.removeItem('telegram_bot_token');     // Telegram Token
+    localStorage.removeItem('telegram_chat_id');       // Telegram Chat ID
+    
+    // Clear state
+    setSet100List("");
+    setTelegramToken("");
+    setTelegramChatId("");
+    
+    toast.success("ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว");
+    
+    // Force reload to ensure all states are reset
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
   };
 
   return (
@@ -214,6 +245,49 @@ const Settings = () => {
               <Send className="w-4 h-4 mr-2" />
               ทดสอบส่งข้อความ
             </Button>
+          </div>
+        </div>
+
+        {/* Danger Zone */}
+        <div className="glass-card p-6 space-y-6 animate-slide-up delay-200 border-destructive/20">
+          <div>
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              พื้นที่อันตราย (Danger Zone)
+            </h2>
+            <p className="text-muted-foreground">การดำเนินการในส่วนนี้ไม่สามารถกู้คืนได้</p>
+          </div>
+
+          <div className="p-4 border border-destructive/20 rounded-lg bg-destructive/5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="font-semibold text-destructive">ล้างข้อมูลทั้งหมด (Factory Reset)</h3>
+              <p className="text-sm text-muted-foreground">
+                ลบประวัติการสแกน, Win Rate, การตั้งค่าแจ้งเตือน, และข้อมูล Telegram ทั้งหมด
+              </p>
+            </div>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full md:w-auto">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  ล้างข้อมูล
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    การกระทำนี้จะลบข้อมูลทั้งหมดของคุณออกจากเครื่องนี้ รวมถึงประวัติการสแกน สถิติ Win Rate และการตั้งค่าต่างๆ ข้อมูลจะไม่สามารถกู้คืนได้
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleFactoryReset} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    ยืนยันการล้างข้อมูล
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>
