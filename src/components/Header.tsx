@@ -1,10 +1,58 @@
-import { TrendingUp, Zap, Settings } from 'lucide-react';
+import { TrendingUp, Zap, Settings, Clock } from 'lucide-react';
 import { WatchlistPanel } from './WatchlistPanel';
 import { Button } from './ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 export function Header() {
   const navigate = useNavigate();
+  const [marketStatus, setMarketStatus] = useState<{ isOpen: boolean; text: string; color: string }>({
+    isOpen: false,
+    text: 'กำลังโหลด...',
+    color: 'text-muted-foreground'
+  });
+
+  useEffect(() => {
+    const checkMarketStatus = () => {
+      const now = new Date();
+      // Convert to Thailand Time
+      const thaiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+      
+      const day = thaiTime.getDay(); // 0 = Sunday, 6 = Saturday
+      const hour = thaiTime.getHours();
+      const minute = thaiTime.getMinutes();
+      const timeInMinutes = hour * 60 + minute;
+
+      // Market Hours (approximate):
+      // Morning: 10:00 - 12:30 (600 - 750)
+      // Afternoon: 14:00 - 16:30 (840 - 990)
+      // Closed on Sat (6) & Sun (0)
+      
+      const isWeekend = day === 0 || day === 6;
+      
+      if (isWeekend) {
+        setMarketStatus({ isOpen: false, text: 'SET ปิดทำการ (วันหยุด)', color: 'text-muted-foreground' });
+        return;
+      }
+
+      // Check Pre-open / Open / Intermission / Closed
+      if (timeInMinutes >= 600 && timeInMinutes <= 750) { // 10:00 - 12:30
+        setMarketStatus({ isOpen: true, text: 'SET เปิดทำการ (เช้า)', color: 'text-success' });
+      } else if (timeInMinutes > 750 && timeInMinutes < 840) { // 12:30 - 14:00
+        setMarketStatus({ isOpen: false, text: 'พักเที่ยง', color: 'text-warning' });
+      } else if (timeInMinutes >= 840 && timeInMinutes <= 990) { // 14:00 - 16:30
+        setMarketStatus({ isOpen: true, text: 'SET เปิดทำการ (บ่าย)', color: 'text-success' });
+      } else if (timeInMinutes > 990 && timeInMinutes <= 1020) { // 16:30 - 17:00 (Run off/Close)
+         setMarketStatus({ isOpen: false, text: 'Pre-Close / Run Off', color: 'text-warning' });
+      } else {
+        setMarketStatus({ isOpen: false, text: 'SET ปิดทำการ', color: 'text-muted-foreground' });
+      }
+    };
+
+    checkMarketStatus();
+    const interval = setInterval(checkMarketStatus, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <header className="glass-card mb-6 p-6 animate-slide-up">
@@ -40,10 +88,14 @@ export function Header() {
 
           <div className="hidden md:flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm text-muted-foreground">ตลาด</p>
-              <p className="font-semibold text-success flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                SET เปิดทำการ
+              <p className="text-sm text-muted-foreground">สถานะตลาด</p>
+              <p className={`font-semibold ${marketStatus.color} flex items-center gap-1 justify-end`}>
+                {marketStatus.isOpen ? (
+                  <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                ) : (
+                  <Clock className="w-3 h-3" />
+                )}
+                {marketStatus.text}
               </p>
             </div>
           </div>
