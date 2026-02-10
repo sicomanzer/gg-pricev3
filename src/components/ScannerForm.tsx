@@ -36,10 +36,8 @@ interface ScannerFormProps {
 export function ScannerForm({ onScan, isLoading, autoScanEnabled, onAutoScanChange, nextScanIn }: ScannerFormProps) {
   // Helper to get today's date in Thailand timezone (GMT+7)
   const getThaiDate = () => {
-    const date = new Date();
-    // Create date string in Thai locale/timezone
-    const thaiDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-    return thaiDate.toISOString().split('T')[0];
+    // Return YYYY-MM-DD format using Thai timezone
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
   };
 
   const [params, setParams] = useState<ScanParams>({
