@@ -123,11 +123,13 @@ const Index = () => {
         playAlertSound();
 
         // Send Telegram Notification
-        const message = `<b>🚀 พบหุ้นใหม่ ${newStocksList.length} ตัว!</b>\n\n` +
-          newStocksList.map(s => 
-            `<b>${s.symbol}</b>: ${s.currentPrice.toFixed(2)} บาท\n` +
-            `Score: ${s.score} | TP: ${s.targetPrice.toFixed(2)}`
-          ).join('\n\n');
+        const message = newStocksList.map(s => 
+            `📊 สัญญาณเทรดใหม่: <b>${s.symbol}</b>\n` +
+            `💰 ราคาปัจจุบัน: ฿${s.currentPrice.toFixed(2)}\n` +
+            `🛒 ราคาซื้อ: ฿${s.entryPoint.toFixed(2)}\n` +
+            `🎯 ราคาเป้าหมาย: ฿${s.targetPrice.toFixed(2)}\n` +
+            `🛑 ราคาตัดขาดทุน: ฿${s.stopLoss.toFixed(2)}`
+          ).join('\n\n------------------\n\n');
         
         sendTelegramMessage(message);
 

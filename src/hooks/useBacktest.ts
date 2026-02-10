@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { StockRecommendation } from '@/data/stockUtils';
+import { toast } from "sonner";
+import { sendTelegramMessage } from '@/lib/telegram';
 
 export interface BacktestRecord {
     id: string;
@@ -61,22 +63,50 @@ export function useBacktest() {
 
                 // Check Win/Loss conditions
                 if (currentPrice >= record.targetPrice) {
+                    const percentChange = ((currentPrice - record.entryPrice) / record.entryPrice) * 100;
+                    
+                    // Notification Logic for WIN
+                    const message = `<b>✅ TAKE PROFIT HIT!</b>\n\n` +
+                        `<b>${record.symbol}</b>\n` +
+                        `Entry: ${record.entryPrice.toFixed(2)}\n` +
+                        `Exit: ${currentPrice.toFixed(2)}\n` +
+                        `Profit: +${percentChange.toFixed(2)}%`;
+                    
+                    sendTelegramMessage(message);
+                    toast.success(`Take Profit: ${record.symbol}`, {
+                        description: `ขายทำกำไรที่ ${currentPrice.toFixed(2)} (+${percentChange.toFixed(2)}%)`
+                    });
+
                     return {
                         ...record,
                         status: 'WIN',
                         exitPrice: currentPrice,
                         exitDate: new Date().toISOString(),
-                        percentChange: ((currentPrice - record.entryPrice) / record.entryPrice) * 100
+                        percentChange: percentChange
                     } as BacktestRecord;
                 }
 
                 if (currentPrice <= record.stopLoss) {
+                    const percentChange = ((currentPrice - record.entryPrice) / record.entryPrice) * 100;
+
+                    // Notification Logic for LOSS
+                    const message = `<b>🛑 STOP LOSS HIT!</b>\n\n` +
+                        `<b>${record.symbol}</b>\n` +
+                        `Entry: ${record.entryPrice.toFixed(2)}\n` +
+                        `Exit: ${currentPrice.toFixed(2)}\n` +
+                        `Loss: ${percentChange.toFixed(2)}%`;
+                    
+                    sendTelegramMessage(message);
+                    toast.error(`Stop Loss: ${record.symbol}`, {
+                        description: `ตัดขาดทุนที่ ${currentPrice.toFixed(2)} (${percentChange.toFixed(2)}%)`
+                    });
+
                     return {
                         ...record,
                         status: 'LOSS',
                         exitPrice: currentPrice,
                         exitDate: new Date().toISOString(),
-                        percentChange: ((currentPrice - record.entryPrice) / record.entryPrice) * 100
+                        percentChange: percentChange
                     } as BacktestRecord;
                 }
 

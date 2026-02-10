@@ -58,12 +58,41 @@ const Settings = () => {
     
     const loadingToast = toast.loading("กำลังส่งข้อความทดสอบ...");
     
-    const success = await sendTelegramMessage("<b>🔔 ทดสอบการแจ้งเตือนจาก Stock Scanner</b>\n\nระบบพร้อมใช้งานครับ!");
+    // Test Case 1: New Signal
+    const msg1 = `📊 สัญญาณเทรดใหม่: <b>PTT</b>\n` +
+            `💰 ราคาปัจจุบัน: ฿34.50\n` +
+            `🛒 ราคาซื้อ: ฿34.25\n` +
+            `🎯 ราคาเป้าหมาย: ฿36.00\n` +
+            `🛑 ราคาตัดขาดทุน: ฿33.00`;
+
+    // Test Case 2: Take Profit
+    const msg2 = `<b>✅ TAKE PROFIT HIT!</b>\n\n` +
+            `<b>PTT</b>\n` +
+            `Entry: 34.25\n` +
+            `Exit: 36.00\n` +
+            `Profit: +5.11%`;
+
+    // Test Case 3: Stop Loss
+    const msg3 = `<b>🛑 STOP LOSS HIT!</b>\n\n` +
+            `<b>PTT</b>\n` +
+            `Entry: 34.25\n` +
+            `Exit: 33.00\n` +
+            `Loss: -3.65%`;
+
+    const fullMessage = `<b>🔔 ทดสอบรูปแบบการแจ้งเตือนทั้งหมด</b>\n\n` +
+                        `------------------\n\n` +
+                        msg1 + `\n\n` +
+                        `------------------\n\n` +
+                        msg2 + `\n\n` +
+                        `------------------\n\n` +
+                        msg3;
+    
+    const success = await sendTelegramMessage(fullMessage);
     
     toast.dismiss(loadingToast);
     
     if (success) {
-      toast.success("ส่งข้อความทดสอบสำเร็จ");
+      toast.success("ส่งข้อความทดสอบทั้ง 3 รูปแบบสำเร็จ");
     } else {
       toast.error("ส่งข้อความไม่สำเร็จ กรุณาตรวจสอบ Token และ Chat ID");
     }
@@ -245,6 +274,49 @@ const Settings = () => {
               <Send className="w-4 h-4 mr-2" />
               ทดสอบส่งข้อความ
             </Button>
+          </div>
+
+          <div className="mt-6 border-t border-border/50 pt-6">
+            <Label className="mb-4 block text-sm font-medium">ตัวอย่างข้อความแจ้งเตือน:</Label>
+            <div className="bg-[#1e1e1e] p-4 rounded-lg font-mono text-xs md:text-sm text-gray-300 border border-gray-800 shadow-inner overflow-x-auto">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Case 1: New Signal */}
+                <div className="flex-1 min-w-[250px]">
+                  <p className="text-blue-400 font-bold mb-2">1. สัญญาณเทรดใหม่</p>
+                  <div className="pl-3 border-l-2 border-blue-500/30 space-y-1.5 bg-black/20 p-2 rounded-r-md">
+                    <p>📊 สัญญาณเทรดใหม่: <b>PTT</b></p>
+                    <p>💰 ราคาปัจจุบัน: ฿34.50</p>
+                    <p>🛒 ราคาซื้อ: ฿34.25</p>
+                    <p>🎯 ราคาเป้าหมาย: ฿36.00</p>
+                    <p>🛑 ราคาตัดขาดทุน: ฿33.00</p>
+                  </div>
+                </div>
+
+                {/* Case 2: Take Profit */}
+                <div className="flex-1 min-w-[200px]">
+                  <p className="text-green-400 font-bold mb-2">2. ขายทำกำไร (TP)</p>
+                  <div className="pl-3 border-l-2 border-green-500/30 space-y-1.5 bg-black/20 p-2 rounded-r-md">
+                    <p><b>✅ TAKE PROFIT HIT!</b></p>
+                    <p><b>PTT</b></p>
+                    <p>Entry: 34.25</p>
+                    <p>Exit: 36.00</p>
+                    <p>Profit: +5.11%</p>
+                  </div>
+                </div>
+
+                {/* Case 3: Stop Loss */}
+                <div className="flex-1 min-w-[200px]">
+                  <p className="text-red-400 font-bold mb-2">3. ตัดขาดทุน (SL)</p>
+                  <div className="pl-3 border-l-2 border-red-500/30 space-y-1.5 bg-black/20 p-2 rounded-r-md">
+                    <p><b>🛑 STOP LOSS HIT!</b></p>
+                    <p><b>PTT</b></p>
+                    <p>Entry: 34.25</p>
+                    <p>Exit: 33.00</p>
+                    <p>Loss: -3.65%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
