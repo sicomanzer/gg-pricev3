@@ -192,9 +192,12 @@ export function ScannerForm({ onScan, isLoading, autoScanEnabled, onAutoScanChan
               <div className={`p-1.5 rounded-full ${params.isSniperMode ? 'bg-red-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                 <Settings2 className="w-4 h-4" />
               </div>
-              <Label htmlFor="sniper-mode" className="cursor-pointer font-bold text-sm">
-                Sniper Mode
-              </Label>
+              <div className="flex flex-col">
+                <Label htmlFor="sniper-mode" className="cursor-pointer font-bold text-sm">
+                  Sniper Mode
+                </Label>
+                <span className="text-xs text-muted-foreground">คัดกรองเข้มข้น</span>
+              </div>
             </div>
             <Switch
               id="sniper-mode"
