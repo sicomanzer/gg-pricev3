@@ -130,9 +130,12 @@ export function ScannerForm({ onScan, isLoading, autoScanEnabled, onAutoScanChan
           </Label>
           <Input
             id="budget"
-            type="number"
-            value={params.budget}
-            onChange={(e) => setParams({ ...params, budget: Number(e.target.value) })}
+            type="text"
+            value={params.budget === 0 ? '' : params.budget.toLocaleString()}
+            onChange={(e) => {
+              const rawValue = e.target.value.replace(/[^0-9]/g, '');
+              setParams({ ...params, budget: rawValue === '' ? 0 : Number(rawValue) });
+            }}
             className="bg-muted/50 border-border/50 focus:border-primary"
             placeholder="100,000"
           />
