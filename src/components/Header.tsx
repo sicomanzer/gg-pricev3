@@ -12,6 +12,20 @@ export function Header() {
     color: 'text-muted-foreground'
   });
 
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      const thaiTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+      setCurrentTime(thaiTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const checkMarketStatus = () => {
       const now = new Date();
@@ -96,6 +110,9 @@ export function Header() {
                   <Clock className="w-3 h-3" />
                 )}
                 {marketStatus.text}
+              </p>
+              <p className="text-xs text-muted-foreground font-mono mt-1">
+                {currentTime}
               </p>
             </div>
           </div>
