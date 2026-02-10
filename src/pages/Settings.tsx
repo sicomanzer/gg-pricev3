@@ -132,7 +132,7 @@ const Settings = () => {
     
     // Force reload to ensure all states are reset
     setTimeout(() => {
-      window.location.reload();
+      window.location.href = '/';
     }, 1500);
   };
 
