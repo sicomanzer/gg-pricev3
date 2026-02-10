@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { format } from "date-fns";
+import { th } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -33,8 +34,16 @@ interface ScannerFormProps {
 }
 
 export function ScannerForm({ onScan, isLoading, autoScanEnabled, onAutoScanChange, nextScanIn }: ScannerFormProps) {
+  // Helper to get today's date in Thailand timezone (GMT+7)
+  const getThaiDate = () => {
+    const date = new Date();
+    // Create date string in Thai locale/timezone
+    const thaiDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+    return thaiDate.toISOString().split('T')[0];
+  };
+
   const [params, setParams] = useState<ScanParams>({
-    date: new Date().toISOString().split('T')[0],
+    date: getThaiDate(),
     market: 'SET100', // Default to SET100 as per latest user preference context
     budget: 100000,
     riskLevel: 'medium',
@@ -79,8 +88,17 @@ export function ScannerForm({ onScan, isLoading, autoScanEnabled, onAutoScanChan
               <Calendar
                 mode="single"
                 selected={params.date ? new Date(params.date) : undefined}
-                onSelect={(date) => date && setParams({ ...params, date: format(date, 'yyyy-MM-dd') })}
+                onSelect={(date) => {
+                  if (date) {
+                    // Create date object adjusted for local time to prevent day shift on conversion
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    setParams({ ...params, date: `${year}-${month}-${day}` });
+                  }
+                }}
                 initialFocus
+                locale={th}
               />
             </PopoverContent>
           </Popover>
