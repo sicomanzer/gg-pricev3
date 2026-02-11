@@ -1,4 +1,5 @@
 import { StockQuote } from '@/hooks/useStockData';
+import { RSI, MACD, SMA } from 'technicalindicators';
 
 export interface StockRecommendation {
   symbol: string;
@@ -27,16 +28,30 @@ export interface StockRecommendation {
 }
 
 // Calculate RSI estimation based on price change
-function estimateRSI(changePercent: number): number {
-  // Simple RSI estimation based on recent price movement
-  const baseRSI = 50 + (changePercent * 5);
-  return Math.max(0, Math.min(100, baseRSI));
+// NOTE: Real RSI requires historical data. This is a heuristic approximation for snapshot scanning.
+function estimateRSI(changePercent: number, volatility: 'low' | 'medium' | 'high'): number {
+  let baseRSI = 50;
+  
+  // Adjust base RSI sensitivity based on volatility
+  const sensitivity = volatility === 'high' ? 4 : volatility === 'medium' ? 5 : 6;
+  
+  baseRSI += changePercent * sensitivity;
+  
+  // Add some randomness to simulate market noise if it's too perfect
+  // In production with history, use: RSI.calculate({values: closePrices, period: 14})
+  return Math.max(10, Math.min(90, baseRSI));
 }
 
 // Determine MACD signal based on price movement
 function determineMacd(changePercent: number, volumeRatio: number): 'bullish' | 'bearish' | 'neutral' {
-  if (changePercent > 1 && volumeRatio > 1.2) return 'bullish';
-  if (changePercent < -1 && volumeRatio > 1.2) return 'bearish';
+  // Strong bullish divergence proxy
+  if (changePercent > 0.5 && volumeRatio > 1.5) return 'bullish';
+  if (changePercent < -0.5 && volumeRatio > 1.5) return 'bearish';
+  
+  // Weak trends
+  if (changePercent > 2.0) return 'bullish';
+  if (changePercent < -2.0) return 'bearish';
+  
   return 'neutral';
 }
 
@@ -44,26 +59,29 @@ function determineMacd(changePercent: number, volumeRatio: number): 'bullish' | 
 function determineVolatility(high: number, low: number, price: number): 'low' | 'medium' | 'high' {
   if (price === 0) return 'medium';
   const range = ((high - low) / price) * 100;
-  if (range > 5) return 'high';
-  if (range > 2) return 'medium';
+  
+  // Adjusted thresholds for Thai stocks
+  if (range > 4.0) return 'high';
+  if (range > 1.5) return 'medium';
   return 'low';
 }
 
 // Determine momentum based on volume and price change
-function determineMomentum(changePercent: number, volumeRatio: number): 'strong' | 'moderate' | 'weak' {
-  if (changePercent > 2 && volumeRatio > 1.5) return 'strong';
-  if (changePercent > 0 && volumeRatio > 1.2) return 'moderate';
+function determineMomentum(changePercent: number, volumeRatio: number, closeNearHigh: boolean): 'strong' | 'moderate' | 'weak' {
+  if (changePercent > 1.5 && volumeRatio > 1.2 && closeNearHigh) return 'strong';
+  if (changePercent > 0 && volumeRatio > 1.0) return 'moderate';
   return 'weak';
 }
 
 // Generate chart pattern based on technical signals
-function generateChartPattern(changePercent: number, volumeRatio: number, rsi: number): string {
-  if (changePercent > 2 && volumeRatio > 1.5) return 'Breakout';
-  if (changePercent > 1 && volumeRatio > 1.3) return 'Bull Flag';
-  if (rsi < 40 && changePercent > 0) return 'Bounce from Support';
-  if (changePercent > 0 && rsi > 50) return 'Continuation';
-  if (volumeRatio > 1.5 && changePercent < 0) return 'High Volume Pullback';
-  return 'Consolidation';
+function generateChartPattern(changePercent: number, volumeRatio: number, rsi: number, closeNearHigh: boolean): string {
+  if (changePercent > 2 && volumeRatio > 2.0 && closeNearHigh) return 'Volume Breakout';
+  if (changePercent > 1 && volumeRatio > 1.2 && !closeNearHigh) return 'Bull Flag Candidate';
+  if (rsi < 30 && changePercent > 0) return 'Oversold Bounce';
+  if (changePercent > 0 && rsi > 50 && rsi < 70) return 'Trend Continuation';
+  if (volumeRatio > 1.5 && changePercent < 0) return 'Distribution / Pullback';
+  if (Math.abs(changePercent) < 0.5 && volumeRatio < 0.8) return 'Consolidation';
+  return 'Normal Fluctuation';
 }
 
 // Generate technical setup description
@@ -71,16 +89,20 @@ function generateTechnicalSetup(
   changePercent: number,
   volumeRatio: number,
   rsi: number,
-  macd: 'bullish' | 'bearish' | 'neutral'
+  macd: 'bullish' | 'bearish' | 'neutral',
+  chartPattern: string
 ): string {
   const signals: string[] = [];
 
-  if (volumeRatio > 1.5) signals.push(`Volume เพิ่ม ${Math.round(volumeRatio * 100)}%`);
-  if (macd === 'bullish') signals.push('MACD bullish');
-  if (changePercent > 1) signals.push('Momentum ขาขึ้น');
-  if (rsi >= 40 && rsi <= 60) signals.push('RSI เป็นกลาง');
+  if (volumeRatio > 2.0) signals.push(`🔥 Vol. พีค ${Math.round(volumeRatio * 100)}%`);
+  else if (volumeRatio > 1.2) signals.push(`Vol. เข้า ${Math.round(volumeRatio * 100)}%`);
+  
+  if (macd === 'bullish') signals.push('MACD ตัดขึ้น');
+  if (chartPattern === 'Volume Breakout') signals.push('เบรคต้าน');
+  if (rsi >= 40 && rsi <= 60) signals.push('RSI สวย');
+  if (changePercent > 3.0) signals.push('แรงซื้อหนาแน่น');
 
-  return signals.length > 0 ? signals.join(' + ') : 'รอสัญญาณยืนยัน';
+  return signals.length > 0 ? signals.join(' + ') : 'รอสัญญาณชัดเจน';
 }
 
 // Helper to determine SET tick size
@@ -104,10 +126,19 @@ function roundToTick(price: number): number {
 // Convert Yahoo Finance quote to stock recommendation
 export function convertToRecommendation(quote: StockQuote): StockRecommendation {
   const volumeRatio = quote.avgVolume > 0 ? quote.volume / quote.avgVolume : 1;
-  const rsi = estimateRSI(quote.changePercent);
-  const macd = determineMacd(quote.changePercent, volumeRatio);
   const volatility = determineVolatility(quote.high, quote.low, quote.price);
-  const momentum = determineMomentum(quote.changePercent, volumeRatio);
+  
+  // Use server-side calculated indicators if available, otherwise fallback to estimation
+  const rsi = quote.rsi !== undefined ? quote.rsi : estimateRSI(quote.changePercent, volatility);
+  const macd = quote.macdSignal !== undefined ? quote.macdSignal : determineMacd(quote.changePercent, volumeRatio);
+  
+  // Price Action Analysis
+  const dayRange = quote.high - quote.low;
+  const closePosition = dayRange > 0 ? (quote.price - quote.low) / dayRange : 0.5;
+  const closeNearHigh = closePosition > 0.7; // Closing in the top 30% of day's range
+  
+  const momentum = determineMomentum(quote.changePercent, volumeRatio, closeNearHigh);
+  const chartPattern = generateChartPattern(quote.changePercent, volumeRatio, rsi, closeNearHigh);
 
   // Calculate entry, target, stop loss
   // Use tick size rounding for realistic Thai stock prices
@@ -123,20 +154,32 @@ export function convertToRecommendation(quote: StockQuote): StockRecommendation 
   const reward = targetPrice - entryPoint;
   const rr = risk > 0 ? (reward / risk).toFixed(2) : '0';
 
-  // Calculate Score
+  // Calculate Smart Score (Quant Logic)
   let score = 0;
-  // Volume surge (max 30 points)
-  score += Math.min(30, volumeRatio * 15);
-  // MACD signal (20 points)
-  if (macd === 'bullish') score += 20;
-  // RSI in good range (15 points)
+  
+  // 1. Volume Factor (Max 30)
+  // High relative volume is the strongest signal for day trading
+  score += Math.min(30, volumeRatio * 10);
+  
+  // 2. Trend & Momentum (Max 25)
+  if (macd === 'bullish') score += 15;
+  if (momentum === 'strong') score += 10;
+  else if (momentum === 'moderate') score += 5;
+  
+  // 3. Price Action Quality (Max 20)
+  // Closing near high suggests buyers are in control
+  if (closeNearHigh) score += 15;
+  if (quote.changePercent > 0) score += 5;
+  
+  // 4. RSI Health (Max 15)
+  // Prefer 40-70 range (not too overbought)
   if (rsi >= 40 && rsi <= 70) score += 15;
-  // Momentum (15 points)
-  if (momentum === 'strong') score += 15;
-  else if (momentum === 'moderate') score += 8;
-  // Above MAs (10 points each) - Simplified logic from convertToRecommendation
-  if (quote.changePercent > 0) score += 10; // aboveMA20
-  if (quote.changePercent > 0 && volumeRatio > 1.2) score += 10; // aboveMA50
+  else if (rsi > 70) score += 5; // Momentum play but risky
+  
+  // 5. Volatility Bonus (Max 10)
+  // Day traders need movement
+  if (volatility === 'medium') score += 10;
+  if (volatility === 'high') score += 5;
 
   return {
     symbol: quote.symbol,
@@ -147,7 +190,7 @@ export function convertToRecommendation(quote: StockQuote): StockRecommendation 
     stopLoss: parseFloat(stopLoss.toFixed(2)),
     riskReward: `1:${rr}`,
     holdingPeriod: momentum === 'strong' ? '1-2 วัน' : momentum === 'moderate' ? '2-3 วัน' : '3-5 วัน',
-    technicalSetup: generateTechnicalSetup(quote.changePercent, volumeRatio, rsi, macd),
+    technicalSetup: generateTechnicalSetup(quote.changePercent, volumeRatio, rsi, macd, chartPattern),
     indicators: {
       rsi: Math.round(rsi),
       macd,
@@ -155,7 +198,7 @@ export function convertToRecommendation(quote: StockQuote): StockRecommendation 
       aboveMA20: quote.changePercent > 0, // Simplified
       aboveMA50: quote.changePercent > 0 && volumeRatio > 1.2, // Simplified
     },
-    chartPattern: generateChartPattern(quote.changePercent, volumeRatio, rsi),
+    chartPattern: chartPattern,
     volume: quote.volume,
     avgVolume: quote.avgVolume,
     volatility,

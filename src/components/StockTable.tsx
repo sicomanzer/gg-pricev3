@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { StockRecommendation } from '@/data/stockUtils';
-import { TrendingUp, TrendingDown, Activity, Clock, Target, BarChart3, Bell, BellRing, Calculator } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, Clock, Target, BarChart3, Bell, BellRing, Calculator, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -69,6 +75,13 @@ export function StockTable({ stocks, alerts = [], onAddAlert, onRemoveAlert, bud
     return alerts.find(a => a.symbol === symbol && a.isActive);
   };
 
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'bg-gradient-to-r from-emerald-500 to-green-500 text-white border-none shadow-md shadow-green-500/20';
+    if (score >= 60) return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-none shadow-md shadow-blue-500/20';
+    if (score >= 40) return 'bg-secondary text-foreground';
+    return 'bg-muted text-muted-foreground';
+  };
+
   return (
     <>
       <div className="glass-card overflow-hidden animate-slide-up">
@@ -76,6 +89,7 @@ export function StockTable({ stocks, alerts = [], onAddAlert, onRemoveAlert, bud
           <Table>
             <TableHeader>
               <TableRow className="border-border/50 hover:bg-transparent">
+                <TableHead className="text-muted-foreground font-medium text-center w-[60px]">Score</TableHead>
                 <TableHead className="text-muted-foreground font-medium">หุ้น</TableHead>
                 <TableHead className="text-muted-foreground font-medium text-right">ราคาปัจจุบัน</TableHead>
                 <TableHead className="text-muted-foreground font-medium text-right">จุดซื้อ</TableHead>
@@ -100,6 +114,14 @@ export function StockTable({ stocks, alerts = [], onAddAlert, onRemoveAlert, bud
                     className="table-row-hover border-border/30"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
+                    <TableCell className="text-center">
+                      <div className="flex flex-col items-center justify-center gap-1">
+                        <Badge className={`${getScoreColor(stock.score)} font-bold text-xs px-2 py-0.5 min-w-[32px] justify-center`}>
+                          {stock.score}
+                        </Badge>
+                      </div>
+                    </TableCell>
+
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-semibold text-foreground">{stock.symbol}</span>
@@ -184,13 +206,49 @@ export function StockTable({ stocks, alerts = [], onAddAlert, onRemoveAlert, bud
                     </TableCell>
 
                     <TableCell className="max-w-[200px]">
-                      <div className="flex flex-col">
-                        <Badge variant="outline" className="neutral-badge w-fit mb-1">
+                      <div className="flex flex-col gap-1">
+                        <Badge variant="outline" className="neutral-badge w-fit text-[10px] px-1.5 h-5">
                           {stock.chartPattern}
                         </Badge>
-                        <span className="text-xs text-muted-foreground line-clamp-2">
-                          {stock.technicalSetup}
-                        </span>
+                        <div className="flex items-start gap-1">
+                          <span className="text-xs text-muted-foreground line-clamp-2 leading-tight">
+                            {stock.technicalSetup}
+                          </span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-3 h-3 text-muted-foreground/50 hover:text-primary cursor-help mt-0.5 shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-[300px] p-4">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold text-sm">รายละเอียดคะแนน (Score Breakdown)</h4>
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="flex justify-between border-b border-border/50 pb-1">
+                                      <span>Volume:</span>
+                                      <span className="font-mono">{Math.min(30, (stock.avgVolume > 0 ? stock.volume / stock.avgVolume : 1) * 10).toFixed(0)}/30</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-border/50 pb-1">
+                                      <span>Trend:</span>
+                                      <span className="font-mono">{(stock.indicators.macd === 'bullish' ? 15 : 0) + (stock.momentum === 'strong' ? 10 : stock.momentum === 'moderate' ? 5 : 0)}/25</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-border/50 pb-1">
+                                      <span>Price Action:</span>
+                                      <span className="font-mono">{(stock.score - (Math.min(30, (stock.avgVolume > 0 ? stock.volume / stock.avgVolume : 1) * 10)) - ((stock.indicators.macd === 'bullish' ? 15 : 0) + (stock.momentum === 'strong' ? 10 : stock.momentum === 'moderate' ? 5 : 0)) - ((stock.indicators.rsi >= 40 && stock.indicators.rsi <= 70) ? 15 : (stock.indicators.rsi > 70 ? 5 : 0)) - ((stock.volatility === 'medium' ? 10 : stock.volatility === 'high' ? 5 : 0))).toFixed(0)}/20</span>
+                                    </div>
+                                    <div className="flex justify-between border-b border-border/50 pb-1">
+                                      <span>RSI Health:</span>
+                                      <span className="font-mono">{(stock.indicators.rsi >= 40 && stock.indicators.rsi <= 70) ? 15 : (stock.indicators.rsi > 70 ? 5 : 0)}/15</span>
+                                    </div>
+                                  </div>
+                                  <div className="pt-2 text-xs text-muted-foreground border-t border-border">
+                                    <p>• {stock.chartPattern}</p>
+                                    <p>• Volatility: {stock.volatility}</p>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                       </div>
                     </TableCell>
 

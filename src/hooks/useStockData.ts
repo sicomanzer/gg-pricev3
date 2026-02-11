@@ -16,6 +16,8 @@ export interface StockQuote {
   previousClose: number;
   marketCap?: number;
   dividendYield?: number;
+  rsi?: number;
+  macdSignal?: 'bullish' | 'bearish' | 'neutral';
 }
 
 export interface StockDataResponse {
